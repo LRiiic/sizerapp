@@ -2,7 +2,7 @@
 
 client_id = "cde35f04d93235049f1306fb8c277d06"
 name = "Shop-Sizer"
-application_url = "https://attend-amendment-recovery-households.trycloudflare.com"
+application_url = "https://davis-mistakes-curriculum-rico.trycloudflare.com"
 embedded = true
 
 [build]
@@ -16,9 +16,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://attend-amendment-recovery-households.trycloudflare.com/auth/callback",
-  "https://attend-amendment-recovery-households.trycloudflare.com/auth/shopify/callback",
-  "https://attend-amendment-recovery-households.trycloudflare.com/api/auth/callback"
+  "https://davis-mistakes-curriculum-rico.trycloudflare.com/auth/callback",
+  "https://davis-mistakes-curriculum-rico.trycloudflare.com/auth/shopify/callback",
+  "https://davis-mistakes-curriculum-rico.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

@@ -52,7 +52,6 @@ export const loader = async ({ request }) => {
     }`
   );
   const responseJson = await response.json();
-  console.log("LOADER", response)
 
   return json({
     products: responseJson.data.products.edges,
@@ -83,7 +82,6 @@ export const action = async ({ request }) => {
       }
     }`
     );
-    console.log("ACTION", response)
     const responseJson = await response.json();
     return json({
     products: responseJson.data.products.edges,
@@ -103,7 +101,6 @@ export default function tableform() {
     ""
   );
   const products = useLoaderData();
-  console.log("PRODUCTS", products.products);
 
   const [tableName, setTableName] = useState('')
   const [tableType, setTableType] = useState('image')
@@ -111,7 +108,7 @@ export default function tableform() {
   const [file, setFile] = useState();
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const hasError = rejectedFiles.length > 0;
-
+  const [productsPicker, setProductsPicker] = useState([]);
 
   const handleTableName = useCallback((value) => setTableName(value), [])
   const handleTableType = useCallback((value) => setTableType(value), [])
@@ -160,29 +157,7 @@ export default function tableform() {
     {label: 'Tabela Personalizada', value: 'customTable'},
   ];
 
-  function renderItem(item) {
-    const {id, url, title, latestOrderUrl} = item.node;
-    const media = <Avatar customer size="md" name={title} source={url}/>;
-    const shortcutActions = latestOrderUrl
-      ? [{content: 'View latest order', url: latestOrderUrl}]
-      : undefined;
-    return (
-      <ResourceItem
-        id={id}
-        url={url}
-        media={media}
-        accessibilityLabel={`View details for ${title}`}
-        shortcutActions={shortcutActions}
-        persistActions
-      >
-        <Text variant="bodyMd" fontWeight="bold" as="h3">
-          {title}
-        </Text>
-      </ResourceItem>
-    );
-  
-  }
-
+ 
   function disambiguateLabel(key, value) {
     switch (key) {
       case 'taggedWith3':
@@ -227,9 +202,9 @@ export default function tableform() {
   }, [handleQueryValueRemove, handleTaggedWithRemove]);
 
   const resourceName = {
-    singular: 'customer',
-    plural: 'customers',
-  };
+    singular: 'produto',
+    plural: 'produtos'
+  };  
 
   const items = [
     {
@@ -271,47 +246,60 @@ export default function tableform() {
   ];
 
   const filters = [
-    {
-      key: 'taggedWith3',
-      label: 'Tagged with',
-      filter: (
-        <TextField
-          label="Tagged with"
-          value={taggedWith}
-          onChange={handleTaggedWithChange}
-          autoComplete="off"
-          labelHidden
-        />
-      ),
-      shortcut: true,
-    },
+    {},
   ];
-
-  const appliedFilters =
-    taggedWith && !isEmpty(taggedWith)
-      ? [
-          {
-            key: 'taggedWith3',
-            label: disambiguateLabel('taggedWith3', taggedWith),
-            onRemove: handleTaggedWithRemove,
-          },
-        ]
-      : [];
 
   const filterControl = (
     <Filters
       queryValue={queryValue}
-      filters={filters}
-      appliedFilters={appliedFilters}
+      
       onQueryChange={handleQueryValueChange}
       onQueryClear={handleQueryValueRemove}
-      onClearAll={handleClearAll}
     >
-      <div style={{paddingLeft: '8px'}}>
-        <Button onClick={() => console.log('New filter saved')}>Save</Button>
-      </div>
     </Filters>
   );
+
+  async function selectProduct() {
+    const products = await window.shopify.resourcePicker({
+      type: "product",
+      action: "select",
+      variants: false,
+      multiple: true,
+    });
+
+    if (products) {
+
+      const productsSelected = products.map(product => ({        
+        id: product.id,
+        featuredMedia: product.images[0].originalSrc,
+        url: `/products/${product.handle}`,
+        title: product.title
+      }));
+
+      console.log('PRODUTOS SELECETED',productsSelected);
+
+      setProductsPicker(productsSelected);
+    }
+  }
+
+  function renderItem(item) {
+
+    const {id, url, title, featuredMedia} = item;
+    const media = <Avatar product size="md" name={title} source={featuredMedia}/>;
+
+    return (
+      <ResourceItem
+        id={id}
+        url={url}
+        media={media}
+        accessibilityLabel={`View details for ${title}`}
+      >
+        <Text variant="bodyMd" fontWeight="bold" as="h3">
+          {title}
+        </Text>
+      </ResourceItem>
+    );
+  }
 
   return (
     <Page>
@@ -367,25 +355,24 @@ export default function tableform() {
                       )}
 
                       <Card>
+                        <Button variant="primary" onClick={selectProduct}>
+                          Selecionar produtos
+                        </Button>
+
+                        {console.log('testtt',products.products)}
+
                         <ResourceList
                           resourceName={resourceName}
-                          items={products.products}
+                          items={productsPicker}
                           renderItem={renderItem}
                           selectedItems={selectedItems}
                           onSelectionChange={setSelectedItems}
                           promotedBulkActions={promotedBulkActions}
                           bulkActions={bulkActions}
-                          sortValue={sortValue}
-                          sortOptions={[
-                            {label: 'Newest update', value: 'DATE_MODIFIED_DESC'},
-                            {label: 'Oldest update', value: 'DATE_MODIFIED_ASC'},
-                          ]}
-                          onSortChange={(selected) => {
-                            setSortValue(selected);
-                            console.log(`Sort option changed to ${selected}.`);
-                          }}
-                          filterControl={filterControl}
+                          showHeader={true}
+                          headerContent={selectedItems.length > 0 ? `${selectedItems.length} selecionados` : `Mostrando ${productsPicker.length} produtos`}
                         />
+
                       </Card>
 
                       {actionData}
