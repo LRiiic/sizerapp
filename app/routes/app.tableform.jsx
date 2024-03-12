@@ -13,6 +13,7 @@ import {
   Link,
   InlineStack,
   Form,
+  Grid,
   FormLayout,
   TextField,
   Select,
@@ -24,6 +25,7 @@ import {
   Avatar,
   ResourceItem,
 } from "@shopify/polaris";
+import { ProductAddIcon } from '@shopify/polaris-icons';
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
@@ -60,32 +62,8 @@ export const loader = async ({ request }) => {
 
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
-  const response = await admin.graphql(
-    `query getProducts {
-      shop {
-        name
-      }
-      products(first: 10) {
-        edges {
-          node {
-            id
-            title
-            featuredMedia {
-              preview {
-                image {
-                  url
-                }
-              }
-            }
-          }
-        }
-      }
-    }`
-    );
-    const responseJson = await response.json();
-    return json({
-    products: responseJson.data.products.edges,
-  });
+  console.log("ACTIONN");
+  return null;
 };
 
 
@@ -118,8 +96,8 @@ export default function tableform() {
     setRejectedFiles(rejectedFiles);
   },[]);
 
-  const validImageTypes = ['image/gif', 'image/jpeg', 'image/png'];
-  const fileUpload = !file && <DropZone.FileUpload actionHint="Formatos aceitos .gif, .jpg, and .png"/>;
+  const validImageTypes = ['image/jpeg', 'image/png'];
+  const fileUpload = !file && <DropZone.FileUpload actionTitle="Adicionar imagem" actionHint="Formatos aceitos .jpg, and .png"/>;
   const uploadedFile = file && (
     <BlockStack>
       <Thumbnail
@@ -131,11 +109,12 @@ export default function tableform() {
   );
 
   const errorMessage = hasError && (
-    <Banner title="The following images couldn’t be uploaded:" tone="critical">
+    <Banner title="Não foi possível enviar as imagens a seguir:" tone="critical">
       <List type="bullet">
         {rejectedFiles.map((file, index) => (
           <List.Item key={index}>
-            {`"${file.name}" is not supported. File type must be .gif, .jpg, .png or .svg.`}
+            {`"${file.name}" não é suportado. O tipo de arquivo deve ser .jpg, .png or .svg.`}
+            
           </List.Item>
         ))}
       </List>
@@ -144,12 +123,12 @@ export default function tableform() {
 
   useEffect(() => {
     if (productId) {
-      shopify.toast.show("Product created");
+      shopify.toast.show("Produto criado");
     }
   }, [productId]);
   const generateProduct = () => submit({}, { replace: true, method: "POST" });
 
-  const createTable = () => submit({}, { replace: true, method: "POST" });
+  const createTable = () => submit({data}, { replace: true, method: "POST" }, { action: "createTable", productId });
 
   const options = [
     {label: 'Imagem', value: 'image'},
@@ -304,9 +283,7 @@ export default function tableform() {
   return (
     <Page>
       <ui-title-bar title="Shop Sizer">
-        {/* <button variant="primary" onClick={generateProduct}>
-          Generate a product
-        </button> */}
+        <button variant="primary" onClick={createTable}>Salvar</button>
       </ui-title-bar>
       <BlockStack gap="500">
         <Layout>
@@ -319,64 +296,63 @@ export default function tableform() {
                   </Text>
                   <Form noValidate>
                     <FormLayout>
-                      <TextField
-                        label="Nome da tabela"
-                        type="text"
-                        autoComplete="off"
-                        value={tableName}
-                        onChange={handleTableName}
-                      />
+                      <Grid>
+                        <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 6, xl: 6}}>
+                          <TextField
+                            label="Nome da tabela"
+                            type="text"
+                            autoComplete="off"
+                            value={tableName}
+                            onChange={handleTableName}
+                          />
 
-                      <Select
-                        label="Tipo de tabela"
-                        options={options}
-                        value={tableType}
-                        onChange={handleTableType}
-                      />
+                          <Select
+                            label="Tipo de tabela"
+                            options={options}
+                            value={tableType}
+                            onChange={handleTableType}
+                          />
 
-                      {tableType == "image" && (
-                      <BlockStack vertical="true">
-                        {errorMessage}
-                        <DropZone accept="image/*" type="image" allowMultiple={false} onDrop={handleDropZoneDrop}>
-                          {uploadedFile}
-                          {fileUpload}
-                        </DropZone>
-                      </BlockStack>
-                      )}
+                          {tableType == "image" && (
+                          <BlockStack vertical="true">
+                            {errorMessage}
+                            <DropZone accept="image/*" type="image" allowMultiple={false} onDrop={handleDropZoneDrop}>
+                              {uploadedFile}
+                              {fileUpload}
+                            </DropZone>
+                          </BlockStack>
+                          )}
 
-                      {tableType == "text" && (
-                      <TextField
-                        label=""
-                        value={tableText}
-                        onChange={handleTableText}
-                        multiline={4}
-                        autoComplete="off"
-                      />
-                      )}
+                          {tableType == "text" && (
+                            <TextField
+                            label=""
+                            value={tableText}
+                            onChange={handleTableText}
+                            multiline={4}
+                            autoComplete="off"
+                          />
+                          )}
+                        </Grid.Cell>
+                        <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 6, xl: 6}}>
+                          <Card>
+                            <Button icon={ProductAddIcon} fullWidth onClick={selectProduct}>Selecionar produtos</Button>
 
-                      <Card>
-                        <Button variant="primary" onClick={selectProduct}>
-                          Selecionar produtos
-                        </Button>
-
-                        {console.log('testtt',products.products)}
-
-                        <ResourceList
-                          resourceName={resourceName}
-                          items={productsPicker}
-                          renderItem={renderItem}
-                          selectedItems={selectedItems}
-                          onSelectionChange={setSelectedItems}
-                          promotedBulkActions={promotedBulkActions}
-                          bulkActions={bulkActions}
-                          showHeader={true}
-                          headerContent={selectedItems.length > 0 ? `${selectedItems.length} selecionados` : `Mostrando ${productsPicker.length} produtos`}
-                        />
-
-                      </Card>
-
-                      {actionData}
-                      <Button variant="primary" submit onClick={createTable}>Salvar</Button>
+                            <ResourceList
+                              resourceName={resourceName}
+                              items={productsPicker}
+                              renderItem={renderItem}
+                              selectedItems={selectedItems}
+                              onSelectionChange={setSelectedItems}
+                              promotedBulkActions={promotedBulkActions}
+                              bulkActions={bulkActions}
+                              showHeader={true}
+                              headerContent={selectedItems.length > 0 ? `${selectedItems.length} selecionados` : `Mostrando ${productsPicker.length} produtos`}
+                            />
+                          </Card>
+                        </Grid.Cell>
+                      </Grid>
+                      {/* {actionData} */}
+                      <Button variant="primary" submit>Salvar</Button>
                     </FormLayout>
                   </Form>
                 </BlockStack>
