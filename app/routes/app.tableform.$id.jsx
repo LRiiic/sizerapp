@@ -38,6 +38,7 @@ import db from "../db.server";
 
 export const loader = async ({ request, params }) => {
   const { admin, session } = await authenticate.admin(request);
+  const products = []
 
   if (params.id === "new") {
     return json({ title: "", content: "", type: "" });
@@ -46,6 +47,30 @@ export const loader = async ({ request, params }) => {
   const table = await db.sizeTable.findFirst({
     where: { id: Number(params.id) },
   });
+
+
+    const productsArray = table.products.split(`,`)
+    console.log(productsArray)
+   
+      const response = await admin.graphql(
+        `#graphql
+          query {
+           product(id: "${[productsArray[0]]}") {
+              id
+             title
+             featuredImage{
+              url
+             }
+             onlineStoreUrl
+         }
+        }`
+       );
+       const responseJson = await response.json();
+    
+
+ 
+    console.log(responseJson)
+ 
 
   return table;
 };
@@ -58,6 +83,7 @@ export const action = async ({ request }) => {
   const data = {
     ...Object.fromEntries(await request.formData()),
   };
+ 
 
   // Create and save sizeTable to db
   const sizeTable = await db.sizeTable.create({
