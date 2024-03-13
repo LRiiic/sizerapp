@@ -30,41 +30,24 @@ import {
   Avatar,
   ResourceItem,
   PageActions,
+  Image,
 } from "@shopify/polaris";
 import { ProductAddIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
-export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+export const loader = async ({ request, params }) => {
+  const { admin, session } = await authenticate.admin(request);
 
-  const response = await admin.graphql(
-    `query getProducts {
-      shop {
-        name
-      }
-      products(first: 10) {
-        edges {
-          node {
-            id
-            title
-            featuredMedia {
-              preview {
-                image {
-                  url
-                }
-              }
-            }
-          }
-        }
-      }
-    }`,
-  );
-  const responseJson = await response.json();
+  if (params.id === "new") {
+    return json({ title: "", content: "", type: "" });
+  }
 
-  return json({
-    products: responseJson.data.products.edges,
+  const table = await db.sizeTable.findFirst({
+    where: { id: Number(params.id) },
   });
+
+  return table;
 };
 
 export const action = async ({ request }) => {
@@ -75,31 +58,18 @@ export const action = async ({ request }) => {
   const data = {
     ...Object.fromEntries(await request.formData()),
   };
-  console.dir(data);
 
   // Create and save sizeTable to db
-  const table = await db.sizeTable.create({
+  const sizeTable = await db.sizeTable.create({
     data: {
       shop,
       title: data.title,
-      image: "TESTE", // TODO: handle images (maybe store as Blob or use AWS to create a url)
+      content: data.content,
+      type: data.type,
+      products: data.products,
     },
   });
 
-  // Create and save products to db and update sizeTable with the selected products
-  Promise.all(
-    data.products.map(async (product) => { // TODO: solve error "map is not a function"
-      await db.products.create({
-        data: {
-          ...product,
-        },
-      });
-      await db.sizeTable.update({
-        where: { id: table.id },
-        data: { products: product },
-      });
-    }),
-  );
   return null;
 };
 
@@ -113,14 +83,15 @@ export default function tableform() {
     "gid://shopify/Product/",
     "",
   );
-  const products = useLoaderData();
+  const table = useLoaderData();
 
-  const [tableName, setTableName] = useState("");
-  const [tableType, setTableType] = useState("image");
+  const { content, title, type } = table;
+
+  const [tableName, setTableName] = useState(title);
+  const [tableType, setTableType] = useState(type || "image");
   const [tableText, setTableText] = useState("");
-  const [file, setFile] = useState();
+  const [file, setFile] = useState(null);
 
-  const [isSaving, setIsSaving] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const hasError = rejectedFiles.length > 0;
   const [productsPicker, setProductsPicker] = useState([]);
@@ -136,6 +107,52 @@ export default function tableform() {
     [],
   );
 
+  useEffect(() => {
+    if(type === 'image' && content){
+      urltoFile(content, 'image.png', 'image/png').then((file) => {
+        setFile(file);
+      });
+    }
+
+
+    
+  }, [table])
+
+  function urltoFile(url, filename, mimeType) {
+    if (url.startsWith("data:")) {
+      var arr = url.split(","),
+        mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[arr.length - 1]),
+        n = bstr.length,
+        u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      var file = new File([u8arr], filename, { type: mime || mimeType });
+      return Promise.resolve(file);
+    }
+    return fetch(url)
+      .then((res) => res.arrayBuffer())
+      .then((buf) => new File([buf], filename, { type: mimeType }));
+  }
+
+  function readFileDataAsBase64(e) {
+    const file = e;
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        resolve(event.target.result);
+      };
+
+      reader.onerror = (err) => {
+        reject(err);
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
   const validImageTypes = ["image/jpeg", "image/png"];
   const fileUpload = !file && (
     <DropZone.FileUpload
@@ -168,34 +185,11 @@ export default function tableform() {
     </Banner>
   );
 
-  useEffect(() => {
-    if (productId) {
-      shopify.toast.show("Produto criado");
-    }
-  }, [productId]);
-  const generateProduct = () => submit({}, { replace: true, method: "POST" });
-
-  const createTable = () =>
-    submit(
-      { data },
-      { replace: true, method: "POST" },
-      { action: "createTable", productId },
-    );
-
   const options = [
     { label: "Imagem", value: "image" },
     { label: "Campo de Texto", value: "text" },
     { label: "Tabela Personalizada", value: "customTable" },
   ];
-
-  function disambiguateLabel(key, value) {
-    switch (key) {
-      case "taggedWith3":
-        return `Tagged with ${value}`;
-      default:
-        return value;
-    }
-  }
 
   function isEmpty(value) {
     if (Array.isArray(value)) {
@@ -206,52 +200,11 @@ export default function tableform() {
   }
 
   const [selectedItems, setSelectedItems] = useState([]);
-  const [sortValue, setSortValue] = useState("DATE_MODIFIED_DESC");
-  const [taggedWith, setTaggedWith] = useState("VIP");
-  const [queryValue, setQueryValue] = useState(undefined);
-
-  const handleTaggedWithChange = useCallback(
-    (value) => setTaggedWith(value),
-    [],
-  );
-  const handleQueryValueChange = useCallback(
-    (value) => setQueryValue(value),
-    [],
-  );
-  const handleTaggedWithRemove = useCallback(
-    () => setTaggedWith(undefined),
-    [],
-  );
-  const handleQueryValueRemove = useCallback(
-    () => setQueryValue(undefined),
-    [],
-  );
-  const handleClearAll = useCallback(() => {
-    handleTaggedWithRemove();
-    handleQueryValueRemove();
-  }, [handleQueryValueRemove, handleTaggedWithRemove]);
 
   const resourceName = {
     singular: "produto",
     plural: "produtos",
   };
-
-  const items = [
-    {
-      id: "112",
-      url: "#",
-      name: "Mae Jemison",
-      location: "Decatur, USA",
-      latestOrderUrl: "orders/1456",
-    },
-    {
-      id: "212",
-      url: "#",
-      name: "Ellen Ochoa",
-      location: "Los Angeles, USA",
-      latestOrderUrl: "orders/1457",
-    },
-  ];
 
   const promotedBulkActions = [
     {
@@ -275,25 +228,16 @@ export default function tableform() {
     },
   ];
 
-  const filters = [{}];
-
-  const filterControl = (
-    <Filters
-      queryValue={queryValue}
-      onQueryChange={handleQueryValueChange}
-      onQueryClear={handleQueryValueRemove}
-    ></Filters>
-  );
-
-
   // Function to call action to submit data
-  function handleSave() {
+  async function handleSave() {
+    const fileBase64 = await readFileDataAsBase64(file);
 
     const data = {
-      products: productsPicker,
+      products: productsPicker.map((product) => product.productId),
       title: tableName,
+      type: tableType,
+      content: fileBase64,
     };
-
 
     submit(data, { method: "POST" });
   }
@@ -342,11 +286,7 @@ export default function tableform() {
 
   return (
     <Page>
-      <ui-title-bar title="Shop Sizer">
-        <button variant="primary" onClick={createTable}>
-          Salvar
-        </button>
-      </ui-title-bar>
+      <ui-title-bar title="Shop Sizer"></ui-title-bar>
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
@@ -433,25 +373,21 @@ export default function tableform() {
                         </Grid.Cell>
                       </Grid>
                       {/* {actionData} */}
-                      <Button variant="primary" submit>
-                        Salvar
-                      </Button>
+                      <PageActions
+                        primaryAction={{
+                          content: "Salvar",
+                          loading: nav.state === "submitting",
+                          disabled:
+                            nav.state === "submitting" ||
+                            !productsPicker.length,
+                          onAction: handleSave,
+                        }}
+                      />
                     </FormLayout>
                   </Form>
                 </BlockStack>
               </BlockStack>
             </Card>
-          </Layout.Section>
-          <Layout.Section>
-            {/* Button to save */}
-            <PageActions
-              primaryAction={{
-                content: "Save",
-                loading: nav.state === "submitting",
-                disabled: nav.state === "submitting" || !productsPicker.length,
-                onAction: handleSave,
-              }}
-            />
           </Layout.Section>
         </Layout>
       </BlockStack>

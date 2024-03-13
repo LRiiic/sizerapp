@@ -22,22 +22,14 @@ model Session {
 }
 
 model SizeTable {
-  id       Int    @id @default(autoincrement())
-  title    String?
-  shop     String?
-  products Products[]
-  image    String?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id        Int      @id @default(autoincrement())
+  title     String
+  shop      String
+  products  String
+  content   String
+  type      String
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-// Products is saved in db because we cant save String array. Need to refactor.
-model Products {
-  id            Int    @id @default(autoincrement())
-  productId     String
-  featuredMedia String
-  url           String
-  title         String
-  table         SizeTable @relation(fields: [sizeTableId], references: [id])
-  sizeTableId   Int
-}

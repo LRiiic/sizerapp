@@ -2,7 +2,7 @@
 
 client_id = "cde35f04d93235049f1306fb8c277d06"
 name = "Shop-Sizer"
-application_url = "https://unix-though-proceeding-indicated.trycloudflare.com"
+application_url = "https://cams-good-bacteria-finals.trycloudflare.com"
 embedded = true
 
 [build]
@@ -16,9 +16,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://unix-though-proceeding-indicated.trycloudflare.com/auth/callback",
-  "https://unix-though-proceeding-indicated.trycloudflare.com/auth/shopify/callback",
-  "https://unix-though-proceeding-indicated.trycloudflare.com/api/auth/callback"
+  "https://cams-good-bacteria-finals.trycloudflare.com/auth/callback",
+  "https://cams-good-bacteria-finals.trycloudflare.com/auth/shopify/callback",
+  "https://cams-good-bacteria-finals.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
