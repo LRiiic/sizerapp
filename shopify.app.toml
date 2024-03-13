@@ -2,7 +2,7 @@
 
 client_id = "cde35f04d93235049f1306fb8c277d06"
 name = "Shop-Sizer"
-application_url = "https://knows-institution-devil-authentication.trycloudflare.com"
+application_url = "https://toolbox-valued-wear-np.trycloudflare.com"
 embedded = true
 
 [build]
@@ -16,9 +16,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://knows-institution-devil-authentication.trycloudflare.com/auth/callback",
-  "https://knows-institution-devil-authentication.trycloudflare.com/auth/shopify/callback",
-  "https://knows-institution-devil-authentication.trycloudflare.com/api/auth/callback"
+  "https://toolbox-valued-wear-np.trycloudflare.com/auth/callback",
+  "https://toolbox-valued-wear-np.trycloudflare.com/auth/shopify/callback",
+  "https://toolbox-valued-wear-np.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
