@@ -80,10 +80,8 @@ export default function Index() {
           </Text>
         </IndexTable.Cell>
 
-        <IndexTable.Cell>{type === "image" ? "Imagem" : "Texto"}</IndexTable.Cell>
-
         <IndexTable.Cell>
-          <Text alignment="end">
+          <Text alignment="center">
             <Badge 
               tone={status ? "success" : "critical" }
               progress={status ? "complete" : "incomplete"}
@@ -91,6 +89,12 @@ export default function Index() {
             >
               {status ? "Ativo" : "Inativo"}
             </Badge>
+          </Text>
+        </IndexTable.Cell>
+
+        <IndexTable.Cell>
+          <Text alignment="end">
+            {type === "image" ? "Imagem" : "Texto"}
           </Text>
         </IndexTable.Cell>
 
@@ -117,8 +121,8 @@ export default function Index() {
                   { title: "ID" },
                   { title: "" },
                   { title: "Nome" },
-                  { title: "Tipo" },
-                  { title: "Status", alignment: "end" },
+                  { title: "Status", alignment: "center" },
+                  { title: "Tipo", alignment: "end" },
                 ]}
               >
                 {rowsTables}
