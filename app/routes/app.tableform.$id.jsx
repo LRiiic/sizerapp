@@ -53,29 +53,29 @@ export const loader = async ({ request, params }) => {
     where: { id: Number(params.id) },
   });
 
-
-    const productsArray = table.products.split(`,`)
-    console.log(productsArray)
-   
-      const response = await admin.graphql(
-        `#graphql
-          query {
-           product(id: "${[productsArray[0]]}") {
-              id
-             title
-             featuredImage{
+  const productsArray = table.products.split(`,`)
+  console.log(productsArray)
+  
+  const promises = productsArray.map(async (productId) => {
+    const response = await admin.graphql(
+      `#graphql
+        query {
+          product(id: "${productId}") {
+            id
+            title
+            featuredImage{
               url
-             }
-             onlineStoreUrl
-         }
+            }
+            onlineStoreUrl
+          }
         }`
-       );
-       const responseJson = await response.json();
+    );
+    const responseData = await response.json();
+    return responseData.data.product;
+  })
     
-
- 
-    console.log(responseJson)
- 
+  table.products = await Promise.all(promises);
+  console.log('MYPROMISE RETURN:', table);
 
   return table;
 };
@@ -117,7 +117,7 @@ export default function tableform() {
   );
   const table = useLoaderData();
 
-  const { content, title, type } = table;
+  const { content, title, type, products } = table;
 
   const [tableName, setTableName] = useState(title);
   const [tableType, setTableType] = useState(type || "image");
@@ -146,8 +146,10 @@ export default function tableform() {
       });
     }
 
-
-    
+    if(products){
+      setProductsPicker(products);
+    }
+   
   }, [table])
 
   function urltoFile(url, filename, mimeType) {
@@ -297,10 +299,15 @@ export default function tableform() {
   }
 
   function renderItem(item) {
-    const { productId, url, title, featuredMedia } = item;
-    const media = (
-      <Avatar product size="md" name={title} source={featuredMedia} />
-    );
+    const { productId, url, title, featuredMedia, featuredImage } = item;
+
+    let media = null;
+
+    featuredMedia &&
+      (media = <Avatar product size="md" name={title} source={featuredMedia} />);
+
+    featuredImage &&
+      (media = <Avatar product size="md" name={title} source={featuredImage.url} />);
 
     return (
       <ResourceItem
