@@ -118,7 +118,7 @@ export default function tableform() {
 
   const table = useLoaderData();
   const { content, title, type, products } = table;
-
+  
   const [message, setMessage] = useState("");
   const [tableName, setTableName] = useState(title);
   const [tableType, setTableType] = useState(type || "image");
@@ -128,6 +128,7 @@ export default function tableform() {
   const hasError = rejectedFiles.length > 0;
   const [productsPicker, setProductsPicker] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
+  console.log(filteredItems)
 
   const handleTableName = useCallback((value) => setTableName(value), []);
   const handleTableType = useCallback((value) => setTableType(value), []);
@@ -241,7 +242,7 @@ export default function tableform() {
   const [selectedItems, setSelectedItems] = useState([]);
 
   function handleProductsPickerRemove(){
-    setProductsPicker(filteredItems.filter(product => !selectedItems.includes(product.productId)));
+    setProductsPicker(filteredItems.filter(product => !selectedItems.includes(product.id)));
   }
   
   // UseEffect necessary to handle async behaviour of useState Callback
@@ -267,7 +268,7 @@ export default function tableform() {
     const fileBase64 = await readFileDataAsBase64(file);
 
     const data = {
-      products: filteredItems.map((product) => product.productId),
+      products: filteredItems.map((product) => product.id),
       id,
       title: tableName,
       type: tableType,
@@ -287,7 +288,7 @@ export default function tableform() {
 
     if (products) {
       const productsSelected = products.map((product) => ({
-        productId: product.id,
+        id: product.id,
         featuredMedia: product.images[0].originalSrc,
         url: `/products/${product.handle}`,
         title: product.title,
@@ -300,7 +301,7 @@ export default function tableform() {
 
   // Render items for resource list
   function renderItem(item) {
-    const { productId, url, title, featuredMedia, featuredImage } = item;
+    const { id, url, title, featuredMedia, featuredImage } = item;
 
     let media = null;
 
@@ -316,8 +317,8 @@ export default function tableform() {
 
     return (
       <ResourceItem
-        key={productId}
-        id={productId}
+        key={id}
+        id={id}
         media={media} 
         accessibilityLabel={`View details for ${title}`}
         verticalAlignment="center"
@@ -436,12 +437,7 @@ export default function tableform() {
                               items={filteredItems}
                               renderItem={renderItem}
                               selectedItems={selectedItems}
-                              onSelectionChange={(e) => {                           
-                                if((e.every(item => !isNaN(item))) && e.length > 0) {
-                                  return setSelectedItems(filteredItems.map((product) => product.productId))
-                                }
-                                setSelectedItems(e)
-                              }}
+                              onSelectionChange={setSelectedItems}
                               selectable
                               promotedBulkActions={promotedBulkActions}
                               emptyState={emptyStateMarkup}

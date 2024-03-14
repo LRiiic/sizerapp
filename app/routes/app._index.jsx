@@ -44,10 +44,13 @@ export const action = async ({ request }) => {
 
   if(action){
     let status
+    let message
     if(action === "deactivate"){
       status = false
+      message = "Tabelas desativadas com sucesso."
     }else{
       status = true
+      message = "Tabelas ativadas com sucesso."
     }
     const deactivateTables = await db.sizeTable.updateMany({
       where: {
@@ -66,7 +69,7 @@ export const action = async ({ request }) => {
         status,
       },
     });
-    return json({ message: "Tabelas desativadas com sucesso." });
+    return json({ message });
   }
 
   const deleteTables = await db.sizeTable.deleteMany({
