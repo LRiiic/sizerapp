@@ -128,7 +128,6 @@ export default function tableform() {
   const hasError = rejectedFiles.length > 0;
   const [productsPicker, setProductsPicker] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
-  console.log(filteredItems)
 
   const handleTableName = useCallback((value) => setTableName(value), []);
   const handleTableType = useCallback((value) => setTableType(value), []);

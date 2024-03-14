@@ -18,8 +18,8 @@ import {
   IndexTable,
   useIndexResourceState,
   Modal,
-  Button,
   EmptySearchResult,
+  Banner,
 } from "@shopify/polaris";
 import db from "../db.server";
 import { DeleteIcon } from "@shopify/polaris-icons";
@@ -96,18 +96,37 @@ export const action = async ({ request }) => {
 export default function Index() {
   const navigate = useNavigate();
   const { tables } = useLoaderData();
+  const actionData = useActionData();
   const submit = useSubmit();
   const [activeModal, setActiveModal] = useState(false);
+  const [activeBanner, setActiveBanner] = useState(false);
 
   const handleToggleModal = useCallback(() => setActiveModal(!activeModal), [activeModal]);
 
   function handleDeleteSelected() {
     submit({ data: [...selectedResources] }, { method: "POST" });
     handleToggleModal();
+
+    setTimeout(() => {
+      setActiveBanner(true);
+      setTimeout(() => {
+        setActiveBanner(false);
+      }, 3000);
+    }, 2000);
   }
 
   function toggleSelected (action){
+    
+
     submit({ data: [...selectedResources], action }, { method: "POST" });
+
+    setTimeout(() => {
+      setActiveBanner(true);
+      setTimeout(() => {
+        setActiveBanner(false);
+      }, 3000);
+    }, 2000);
+
   }
 
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
@@ -204,62 +223,62 @@ export default function Index() {
       primaryAction={{
         content: "Criar nova tabela",
         onAction: () => navigate("/app/tableform/new"),
-      }}
+      }}  
     >
-        <Modal
-          activator={handleToggleModal}
-          open={activeModal}
-          onClose={handleToggleModal}
-          title="Excluir tabelas selecionadas?"
-          primaryAction={{
-            destructive: true,
-            content: 'Sim, excluir permanentemente',
-            onAction: handleDeleteSelected,
-          }}
-          secondaryActions={[
-            {
-              content: 'Cancelar',
-              onAction: handleToggleModal,
-            },
-          ]}
-        >
-          <Modal.Section>
-            <Text>
-              <p>
-                {"Tem certeza que deseja excluir " + selectedResources.length + " tabelas selecionadas?" }
-              </p>
-            </Text>
-          </Modal.Section>
-        </Modal>
-
-      <Layout>
-        <Layout.Section>
-          <Card title="Suas tabelas" roundedAbove="sm" padding={"none"}>
-            <BlockStack>
-              <IndexTable
-                resourceName={resourceName}
-                itemCount={tables.length}
-                emptyState={emptyStateMarkup}
-                onSelectionChange={handleSelectionChange}
-                selectedItemsCount={
-                  allResourcesSelected ? "All" : selectedResources.length
-                }
-                headings={[
-                  { title: "ID" },
-                  { title: "" },
-                  { title: "Nome" },
-                  { title: "Status", alignment: "center" },
-                  { title: "Tipo", alignment: "end" },
-                ]}
-                bulkActions={bulkActions}
-                promotedBulkActions={promotedBulkActions}
-              >
-                {rowsTables}
-              </IndexTable>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-      </Layout>
+      <Modal
+        activator={handleToggleModal}
+        open={activeModal}
+        onClose={handleToggleModal}
+        title="Excluir tabelas selecionadas?"
+        primaryAction={{
+          destructive: true,
+          content: 'Sim, excluir permanentemente',
+          onAction: handleDeleteSelected,
+        }}
+        secondaryActions={[
+          {
+            content: 'Cancelar',
+            onAction: handleToggleModal,
+          },
+        ]}
+      >
+        <Modal.Section>
+          <Text>
+              {"Tem certeza que deseja excluir " + selectedResources.length + " tabelas selecionadas?" }
+          </Text>
+        </Modal.Section>
+      </Modal>
+      <BlockStack gap={"500"}>
+        {activeBanner && actionData && <Banner title={actionData.message} tone={"success"} onDismiss={() => setActiveBanner(false)} />}
+        <Layout>
+          <Layout.Section>
+            <Card title="Suas tabelas" roundedAbove="sm" padding={"none"}>
+              <BlockStack>
+                <IndexTable
+                  resourceName={resourceName}
+                  itemCount={tables.length}
+                  emptyState={emptyStateMarkup}
+                  onSelectionChange={handleSelectionChange}
+                  selectedItemsCount={
+                    allResourcesSelected ? "All" : selectedResources.length
+                  }
+                  headings={[
+                    { title: "ID" },
+                    { title: "" },
+                    { title: "Nome" },
+                    { title: "Status", alignment: "center" },
+                    { title: "Tipo", alignment: "end" },
+                  ]}
+                  bulkActions={bulkActions}
+                  promotedBulkActions={promotedBulkActions}
+                >
+                  {rowsTables}
+                </IndexTable>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </BlockStack>
     </Page>
   );
 }
