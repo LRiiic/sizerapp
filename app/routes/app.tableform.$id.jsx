@@ -436,7 +436,7 @@ export default function tableform() {
                               items={filteredItems}
                               renderItem={renderItem}
                               selectedItems={selectedItems}
-                              onSelectionChange={(e) => {
+                              onSelectionChange={(e) => {                           
                                 if((e.every(item => !isNaN(item))) && e.length > 0) {
                                   return setSelectedItems(filteredItems.map((product) => product.productId))
                                 }

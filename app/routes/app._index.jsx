@@ -37,10 +37,37 @@ export const action = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
   const { shop } = session;
 
-  const { data } = {
+  const { data, action } = {
     ...Object.fromEntries(await request.formData()),
   };
   const arrayId = data.split(",").map(Number);
+
+  if(action){
+    let status
+    if(action === "deactivate"){
+      status = false
+    }else{
+      status = true
+    }
+    const deactivateTables = await db.sizeTable.updateMany({
+      where: {
+        AND: [
+          {
+            id: {
+              in: arrayId,
+            },
+          },
+          {
+            shop,
+          },
+        ],
+      },
+      data: {
+        status,
+      },
+    });
+    return json({ message: "Tabelas desativadas com sucesso." });
+  }
 
   const deleteTables = await db.sizeTable.deleteMany({
     where: {
@@ -68,6 +95,10 @@ export default function Index() {
     submit({ data: [...selectedResources] }, { method: "POST" });
   }
 
+  function toggleSelected (action){
+    submit({ data: [...selectedResources], action }, { method: "POST" });
+  }
+
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(tables);
 
@@ -75,6 +106,17 @@ export default function Index() {
     singular: "tabela",
     plural: "tabelas",
   };
+
+  const promotedBulkActions = [
+    {
+      content: "Desativar selecionados",
+      onAction: () => toggleSelected("deactivate"),
+    },
+    {
+      content: "Ativar selecionados",
+      onAction: () => toggleSelected("activate"),
+    },
+  ]
 
   const bulkActions = [
     {
@@ -164,6 +206,7 @@ export default function Index() {
                   { title: "Tipo", alignment: "end" },
                 ]}
                 bulkActions={bulkActions}
+                promotedBulkActions={promotedBulkActions}
               >
                 {rowsTables}
               </IndexTable>
