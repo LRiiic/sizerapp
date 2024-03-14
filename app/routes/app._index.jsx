@@ -62,7 +62,7 @@ export default function Index() {
 
         <IndexTable.Cell>
           {type === "image" ? (
-            <span class="Polaris-Thumbnail Polaris-Thumbnail--sizeSmall">
+            <span className="Polaris-Thumbnail Polaris-Thumbnail--sizeSmall">
               <img
                 alt={title}
                 src={content}
@@ -102,6 +102,7 @@ export default function Index() {
   return (
     <Page
       title={"Suas tabelas"}
+      subtitle="Aqui ficam listadas suas tabelas. Clique na tabela para editar ou excluir."
       fullWidth
       primaryAction={{content: 'Criar nova tabela', onAction: () => navigate("/app/tableform/new")}}
     >

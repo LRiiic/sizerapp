@@ -4,6 +4,7 @@ import {
   useActionData,
   useLoaderData,
   useNavigation,
+  useNavigate,
   useSubmit,
 } from "@remix-run/react";
 import {
@@ -19,6 +20,7 @@ import {
   InlineStack,
   Form,
   Grid,
+  InlineGrid,
   FormLayout,
   TextField,
   Select,
@@ -31,8 +33,11 @@ import {
   ResourceItem,
   PageActions,
   Image,
+  Tooltip,
+  EmptyState,
+  Divider
 } from "@shopify/polaris";
-import { ProductAddIcon } from "@shopify/polaris-icons";
+import { ProductAddIcon, ImageExploreIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
@@ -101,6 +106,7 @@ export const action = async ({ request }) => {
 
 export default function tableform() {
   const nav = useNavigation();
+  const navigate = useNavigate();
   const actionData = useActionData();
   const submit = useSubmit();
   const isLoading =
@@ -182,14 +188,14 @@ export default function tableform() {
   const validImageTypes = ["image/jpeg", "image/png"];
   const fileUpload = !file && (
     <DropZone.FileUpload
-      actionTitle="Adicionar imagem"
+      actionTitle="Selecionar imagem"
       actionHint="Formatos aceitos .jpg, and .png"
     />
   );
   const uploadedFile = file && (
     <BlockStack>
       <Thumbnail
-        size="large"
+        size="extraLarge"
         alt={file.name}
         source={window.URL.createObjectURL(file)}
       />
@@ -302,6 +308,7 @@ export default function tableform() {
         url={url}
         media={media}
         accessibilityLabel={`View details for ${title}`}
+        verticalAlignment="center"
       >
         <Text variant="bodyMd" fontWeight="bold" as="h3">
           {title}
@@ -310,76 +317,108 @@ export default function tableform() {
     );
   }
 
+  const emptyStateMarkup =
+    !productsPicker.length ? (
+      <EmptyState
+        heading="Selecione os produtos para vincular na tabela"
+        action={{content: 'Selecionar produtos', icon: ProductAddIcon, onAction: selectProduct}}
+        image="https://cdn.shopify.com/s/files/1/2376/3301/products/emptystate-files.png"
+      >
+        <p>
+          Você precisa selecionar os produtos para vincular na tabela.
+        </p>
+      </EmptyState>
+    ) : undefined;
+
   return (
-    <Page>
-      <ui-title-bar title="Shop Sizer"></ui-title-bar>
+    <Page
+      title={table.title || "Crie sua tabela"}
+      fullWidth
+      backAction={{content: 'Voltar', onAction: () => navigate('/app')}}
+      primaryAction={{
+        content: "Salvar",
+        loading: nav.state === "submitting",
+        helpText: 'Você precisa preencher os campos.',
+        disabled:
+          nav.state === "submitting" ||
+          !productsPicker.length,
+        onAction: handleSave, 
+      }}
+    >
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
-            <Card>
-              <BlockStack gap="500">
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Crie sua tabela
-                  </Text>
-                  <Form noValidate>
-                    <FormLayout>
-                      <Grid>
-                        <Grid.Cell
-                          columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}
-                        >
-                          <TextField
-                            label="Nome da tabela"
-                            type="text"
-                            autoComplete="off"
-                            value={tableName}
-                            onChange={handleTableName}
-                          />
+            <Form noValidate>
+              <FormLayout>
+                <Grid>
+                  <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 5, xl: 5}}>
+                    <Card>
+                      <BlockStack className={"Campos"}>
+                        
+                        <TextField
+                          label="Nome da tabela"
+                          type="text"
+                          autoComplete="off"
+                          value={tableName}
+                          onChange={handleTableName}
+                        />
 
+                        <Box paddingBlock={"300"}>
                           <Select
                             label="Tipo de tabela"
                             options={options}
                             value={tableType}
                             onChange={handleTableType}
                           />
+                        </Box>
 
-                          {tableType == "image" && (
-                            <BlockStack vertical="true">
-                              {errorMessage}
-                              <DropZone
-                                accept="image/*"
-                                type="image"
-                                allowMultiple={false}
-                                onDrop={handleDropZoneDrop}
-                              >
-                                {uploadedFile}
-                                {fileUpload}
-                              </DropZone>
-                            </BlockStack>
-                          )}
-
-                          {tableType == "text" && (
-                            <TextField
-                              label=""
-                              value={tableText}
-                              onChange={handleTableText}
-                              multiline={4}
-                              autoComplete="off"
-                            />
-                          )}
-                        </Grid.Cell>
-                        <Grid.Cell
-                          columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}
-                        >
-                          <Card>
-                            <Button
-                              icon={ProductAddIcon}
-                              fullWidth
-                              onClick={selectProduct}
+                        {tableType == "image" && (
+                          <BlockStack vertical="true">
+                            {errorMessage}
+                            <DropZone
+                              accept="image/*"
+                              type="image"
+                              allowMultiple={false}
+                              onDrop={handleDropZoneDrop}
                             >
-                              Selecionar produtos
-                            </Button>
+                              {uploadedFile}
+                              {fileUpload}
+                            </DropZone>
+                          </BlockStack>
+                        )}
 
+                        {tableType == "text" && (
+                          <TextField
+                            label=""
+                            value={tableText}
+                            onChange={handleTableText}
+                            multiline={4}
+                            autoComplete="off"
+                          />
+                        )}
+                      </BlockStack>
+                    </Card>
+                  </Grid.Cell>
+
+                  <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 7, xl: 7}}>
+                    <Card>
+                      <BlockStack className={"Produtos"} gap={"400"}>
+                        <InlineGrid columns="1fr auto">
+                          <Text as="h3" variant="headingSm">
+                            Produtos:
+                          </Text>
+                          {productsPicker.length > 0 && (
+                            <Button
+                              variant="plain"
+                              onClick={selectProduct}
+                              accessibilityLabel="Alterar produtos selecionados"
+                            >
+                              Alterar produtos selecionados
+                            </Button>
+                          )}
+                        </InlineGrid>
+                        <Box paddingBlock="300">
+                          <Card padding={"none"}>
                             <ResourceList
                               resourceName={resourceName}
                               items={productsPicker}
@@ -388,6 +427,7 @@ export default function tableform() {
                               onSelectionChange={setSelectedItems}
                               promotedBulkActions={promotedBulkActions}
                               bulkActions={bulkActions}
+                              emptyState={emptyStateMarkup}
                               showHeader={true}
                               headerContent={
                                 selectedItems.length > 0
@@ -396,24 +436,13 @@ export default function tableform() {
                               }
                             />
                           </Card>
-                        </Grid.Cell>
-                      </Grid>
-                      {/* {actionData} */}
-                      <PageActions
-                        primaryAction={{
-                          content: "Salvar",
-                          loading: nav.state === "submitting",
-                          disabled:
-                            nav.state === "submitting" ||
-                            !productsPicker.length,
-                          onAction: handleSave,
-                        }}
-                      />
-                    </FormLayout>
-                  </Form>
-                </BlockStack>
-              </BlockStack>
-            </Card>
+                        </Box>
+                      </BlockStack>
+                    </Card>
+                  </Grid.Cell>
+                </Grid>
+              </FormLayout>
+            </Form>
           </Layout.Section>
         </Layout>
       </BlockStack>
