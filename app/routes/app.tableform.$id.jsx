@@ -29,6 +29,7 @@ import {
   Avatar,
   ResourceItem,
   EmptyState,
+  useIndexResourceState,
 } from "@shopify/polaris";
 import { ProductAddIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
@@ -79,7 +80,6 @@ export const action = async ({ request }) => {
     ...Object.fromEntries(await request.formData()),
   };
 
-  console.log(data);
   if (data.id !== "undefined" && data.id !== "new") {
     // Update sizeTable
     const sizeTable = await db.sizeTable.update({
@@ -117,7 +117,6 @@ export default function tableform() {
     ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
 
   const table = useLoaderData();
-
   const { content, title, type, products } = table;
 
   const [message, setMessage] = useState("");
@@ -125,10 +124,10 @@ export default function tableform() {
   const [tableType, setTableType] = useState(type || "image");
   const [tableText, setTableText] = useState("");
   const [file, setFile] = useState(null);
-
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const hasError = rejectedFiles.length > 0;
   const [productsPicker, setProductsPicker] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
 
   const handleTableName = useCallback((value) => setTableName(value), []);
   const handleTableType = useCallback((value) => setTableType(value), []);
@@ -238,7 +237,18 @@ export default function tableform() {
     }
   }
 
+
   const [selectedItems, setSelectedItems] = useState([]);
+
+  function handleProductsPickerRemove(){
+    setProductsPicker(filteredItems.filter(product => !selectedItems.includes(product.productId)));
+  }
+  
+  // UseEffect necessary to handle async behaviour of useState Callback
+  useEffect(()=> {
+    setFilteredItems(productsPicker)
+    setSelectedItems([]) // Reset selected items
+  }, [productsPicker])
 
   const resourceName = {
     singular: "produto",
@@ -247,23 +257,8 @@ export default function tableform() {
 
   const promotedBulkActions = [
     {
-      content: "Edit customers",
-      onAction: () => console.log("Todo: implement bulk edit"),
-    },
-  ];
-
-  const bulkActions = [
-    {
-      content: "Add tags",
-      onAction: () => console.log("Todo: implement bulk add tags"),
-    },
-    {
-      content: "Remove tags",
-      onAction: () => console.log("Todo: implement bulk remove tags"),
-    },
-    {
-      content: "Delete customers",
-      onAction: () => console.log("Todo: implement bulk delete"),
+      content: "Remover selecionados",
+      onAction: handleProductsPickerRemove
     },
   ];
 
@@ -272,7 +267,7 @@ export default function tableform() {
     const fileBase64 = await readFileDataAsBase64(file);
 
     const data = {
-      products: productsPicker.map((product) => product.productId),
+      products: filteredItems.map((product) => product.productId),
       id,
       title: tableName,
       type: tableType,
@@ -298,12 +293,12 @@ export default function tableform() {
         title: product.title,
       }));
 
-      console.log("PRODUTOS SELECETED", productsSelected);
-
-      setProductsPicker(productsSelected);
+      setFilteredItems(productsSelected);
     }
   }
 
+
+  // Render items for resource list
   function renderItem(item) {
     const { productId, url, title, featuredMedia, featuredImage } = item;
 
@@ -321,9 +316,9 @@ export default function tableform() {
 
     return (
       <ResourceItem
+        key={productId}
         id={productId}
-        url={url}
-        media={media}
+        media={media} 
         accessibilityLabel={`View details for ${title}`}
         verticalAlignment="center"
       >
@@ -334,7 +329,7 @@ export default function tableform() {
     );
   }
 
-  const emptyStateMarkup = !productsPicker.length ? (
+  const emptyStateMarkup = !filteredItems.length ? (
     <EmptyState
       heading="Selecione os produtos para vincular na tabela"
       action={{
@@ -357,7 +352,7 @@ export default function tableform() {
         content: table.id ? "Editar" : "Salvar",
         loading: nav.state === "submitting",
         helpText: "Você precisa preencher os campos.",
-        disabled: nav.state === "submitting" || !productsPicker.length,
+        disabled: nav.state === "submitting" || !filteredItems.length,
         onAction: () => handleSubmit(table.id),
       }}
     >
@@ -424,7 +419,7 @@ export default function tableform() {
                           <Text as="h3" variant="headingSm">
                             Produtos:
                           </Text>
-                          {productsPicker.length > 0 && (
+                          {filteredItems.length > 0 && (
                             <Button
                               variant="plain"
                               onClick={selectProduct}
@@ -438,18 +433,23 @@ export default function tableform() {
                           <Card padding={"none"}>
                             <ResourceList
                               resourceName={resourceName}
-                              items={productsPicker}
+                              items={filteredItems}
                               renderItem={renderItem}
                               selectedItems={selectedItems}
-                              onSelectionChange={setSelectedItems}
+                              onSelectionChange={(e) => {
+                                if((e.every(item => !isNaN(item))) && e.length > 0) {
+                                  return setSelectedItems(filteredItems.map((product) => product.productId))
+                                }
+                                setSelectedItems(e)
+                              }}
+                              selectable
                               promotedBulkActions={promotedBulkActions}
-                              bulkActions={bulkActions}
                               emptyState={emptyStateMarkup}
                               showHeader={true}
                               headerContent={
                                 selectedItems.length > 0
                                   ? `${selectedItems.length} selecionados`
-                                  : `Mostrando ${productsPicker.length} produtos`
+                                  : `Mostrando ${filteredItems.length} produtos`
                               }
                             />
                           </Card>

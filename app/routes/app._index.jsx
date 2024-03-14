@@ -20,7 +20,7 @@ import {
 import db from "../db.server";
 import { DeleteIcon } from "@shopify/polaris-icons";
 
-// TODO: EDIT TABLES | DELETE TABLES | LINK TABLES TO CATEGORIES | CREATE CUSTOM TABLES
+// TODO: LINK TABLES TO CATEGORIES | CREATE CUSTOM TABLES
 
 export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
