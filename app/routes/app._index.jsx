@@ -5,6 +5,7 @@ import {
   useActionData,
   useSubmit,
 } from "@remix-run/react";
+import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 import {
   BlockStack,
@@ -16,6 +17,9 @@ import {
   SkeletonThumbnail,
   IndexTable,
   useIndexResourceState,
+  Modal,
+  Button,
+  EmptySearchResult,
 } from "@shopify/polaris";
 import db from "../db.server";
 import { DeleteIcon } from "@shopify/polaris-icons";
@@ -93,9 +97,13 @@ export default function Index() {
   const navigate = useNavigate();
   const { tables } = useLoaderData();
   const submit = useSubmit();
+  const [activeModal, setActiveModal] = useState(false);
+
+  const handleToggleModal = useCallback(() => setActiveModal(!activeModal), [activeModal]);
 
   function handleDeleteSelected() {
     submit({ data: [...selectedResources] }, { method: "POST" });
+    handleToggleModal();
   }
 
   function toggleSelected (action){
@@ -126,7 +134,7 @@ export default function Index() {
       icon: DeleteIcon,
       destructive: true,
       content: "Deletar selecionados",
-      onAction: handleDeleteSelected,
+      onAction: handleToggleModal,
     },
   ];
 
@@ -180,6 +188,14 @@ export default function Index() {
     ),
   );
 
+  const emptyStateMarkup = (
+    <EmptySearchResult
+      title={'Sem tabelas cadastradas'}
+      description={'Cadastre uma nova tabela para comecar.'}
+      withIllustration
+    />
+  );
+
   return (
     <Page
       title={"Suas tabelas"}
@@ -190,6 +206,32 @@ export default function Index() {
         onAction: () => navigate("/app/tableform/new"),
       }}
     >
+        <Modal
+          activator={handleToggleModal}
+          open={activeModal}
+          onClose={handleToggleModal}
+          title="Excluir tabelas selecionadas?"
+          primaryAction={{
+            destructive: true,
+            content: 'Sim, excluir permanentemente',
+            onAction: handleDeleteSelected,
+          }}
+          secondaryActions={[
+            {
+              content: 'Cancelar',
+              onAction: handleToggleModal,
+            },
+          ]}
+        >
+          <Modal.Section>
+            <Text>
+              <p>
+                {"Tem certeza que deseja excluir " + selectedResources.length + " tabelas selecionadas?" }
+              </p>
+            </Text>
+          </Modal.Section>
+        </Modal>
+
       <Layout>
         <Layout.Section>
           <Card title="Suas tabelas" roundedAbove="sm" padding={"none"}>
@@ -197,6 +239,7 @@ export default function Index() {
               <IndexTable
                 resourceName={resourceName}
                 itemCount={tables.length}
+                emptyState={emptyStateMarkup}
                 onSelectionChange={handleSelectionChange}
                 selectedItemsCount={
                   allResourcesSelected ? "All" : selectedResources.length

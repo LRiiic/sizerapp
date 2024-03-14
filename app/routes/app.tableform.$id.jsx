@@ -358,6 +358,7 @@ export default function tableform() {
       }}
     >
       <BlockStack gap="500">
+      {message && <Banner title={message} tone={"success"} onDismiss={() => {setMessage(null)}} />}
         <Layout>
           <Layout.Section>
             <Form noValidate>
@@ -365,7 +366,6 @@ export default function tableform() {
                 <Grid>
                   <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 5, xl: 5 }}>
                     <Card>
-                      {message && <Banner status="success">{message}</Banner>}
                       <BlockStack className={"Campos"}>
                         <TextField
                           label="Nome da tabela"

@@ -2,7 +2,7 @@
 
 client_id = "cde35f04d93235049f1306fb8c277d06"
 name = "Shop-Sizer"
-application_url = "https://brooks-talent-mild-employees.trycloudflare.com"
+application_url = "https://analyzed-starsmerchant-usd-showtimes.trycloudflare.com"
 embedded = true
 
 [build]
@@ -16,9 +16,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://brooks-talent-mild-employees.trycloudflare.com/auth/callback",
-  "https://brooks-talent-mild-employees.trycloudflare.com/auth/shopify/callback",
-  "https://brooks-talent-mild-employees.trycloudflare.com/api/auth/callback"
+  "https://analyzed-starsmerchant-usd-showtimes.trycloudflare.com/auth/callback",
+  "https://analyzed-starsmerchant-usd-showtimes.trycloudflare.com/auth/shopify/callback",
+  "https://analyzed-starsmerchant-usd-showtimes.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
