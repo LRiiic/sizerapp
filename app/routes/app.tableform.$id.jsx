@@ -16,8 +16,6 @@ import {
   BlockStack,
   Box,
   List,
-  Link,
-  InlineStack,
   Form,
   Grid,
   InlineGrid,
@@ -27,23 +25,17 @@ import {
   DropZone,
   Thumbnail,
   Banner,
-  Filters,
   ResourceList,
   Avatar,
   ResourceItem,
-  PageActions,
-  Image,
-  Tooltip,
   EmptyState,
-  Divider
 } from "@shopify/polaris";
-import { ProductAddIcon, ImageExploreIcon } from "@shopify/polaris-icons";
+import { ProductAddIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 export const loader = async ({ request, params }) => {
-  const { admin, session } = await authenticate.admin(request);
-  const products = []
+  const { admin } = await authenticate.admin(request);
 
   if (params.id === "new") {
     return json({ title: "", content: "", type: "" });
@@ -53,9 +45,8 @@ export const loader = async ({ request, params }) => {
     where: { id: Number(params.id) },
   });
 
-  const productsArray = table.products.split(`,`)
-  console.log(productsArray)
-  
+  const productsArray = table.products.split(`,`);
+
   const promises = productsArray.map(async (productId) => {
     const response = await admin.graphql(
       `#graphql
@@ -68,14 +59,13 @@ export const loader = async ({ request, params }) => {
             }
             onlineStoreUrl
           }
-        }`
+        }`,
     );
     const responseData = await response.json();
     return responseData.data.product;
-  })
-    
+  });
+
   table.products = await Promise.all(promises);
-  console.log('MYPROMISE RETURN:', table);
 
   return table;
 };
@@ -88,37 +78,49 @@ export const action = async ({ request }) => {
   const data = {
     ...Object.fromEntries(await request.formData()),
   };
- 
+
+  console.log(data);
+  if (data.id !== "undefined" && data.id !== "new") {
+    // Update sizeTable
+    const sizeTable = await db.sizeTable.update({
+      where: { id: Number(data.id) },
+      data: {
+        title: data.title,
+        content: data.content,
+        type: data.type,
+        products: data.products,
+      },
+    });
+    return json({ message: "Tabela editada com sucesso." });
+  }
 
   // Create and save sizeTable to db
   const sizeTable = await db.sizeTable.create({
     data: {
-      shop,
       title: data.title,
       content: data.content,
       type: data.type,
       products: data.products,
+      shop,
     },
   });
 
-  return null;
+  return json({ message: "Tabela criada com sucesso." });
 };
 
 export default function tableform() {
   const nav = useNavigation();
   const navigate = useNavigate();
-  const actionData = useActionData();
+  const action = useActionData();
   const submit = useSubmit();
   const isLoading =
     ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
-  const productId = actionData?.product?.id.replace(
-    "gid://shopify/Product/",
-    "",
-  );
+
   const table = useLoaderData();
 
   const { content, title, type, products } = table;
 
+  const [message, setMessage] = useState("");
   const [tableName, setTableName] = useState(title);
   const [tableType, setTableType] = useState(type || "image");
   const [tableText, setTableText] = useState("");
@@ -140,17 +142,20 @@ export default function tableform() {
   );
 
   useEffect(() => {
-    if(type === 'image' && content){
-      urltoFile(content, 'image.png', 'image/png').then((file) => {
+    if (action) setMessage(action?.message || "");
+  }, [action]);
+
+  useEffect(() => {
+    if (type === "image" && content) {
+      urltoFile(content, "image.png", "image/png").then((file) => {
         setFile(file);
       });
     }
 
-    if(products){
+    if (products) {
       setProductsPicker(products);
     }
-   
-  }, [table])
+  }, [table]);
 
   function urltoFile(url, filename, mimeType) {
     if (url.startsWith("data:")) {
@@ -263,11 +268,12 @@ export default function tableform() {
   ];
 
   // Function to call action to submit data
-  async function handleSave() {
+  async function handleSubmit(id) {
     const fileBase64 = await readFileDataAsBase64(file);
 
     const data = {
       products: productsPicker.map((product) => product.productId),
+      id,
       title: tableName,
       type: tableType,
       content: fileBase64,
@@ -304,10 +310,14 @@ export default function tableform() {
     let media = null;
 
     featuredMedia &&
-      (media = <Avatar product size="md" name={title} source={featuredMedia} />);
+      (media = (
+        <Avatar product size="md" name={title} source={featuredMedia} />
+      ));
 
     featuredImage &&
-      (media = <Avatar product size="md" name={title} source={featuredImage.url} />);
+      (media = (
+        <Avatar product size="md" name={title} source={featuredImage.url} />
+      ));
 
     return (
       <ResourceItem
@@ -324,32 +334,31 @@ export default function tableform() {
     );
   }
 
-  const emptyStateMarkup =
-    !productsPicker.length ? (
-      <EmptyState
-        heading="Selecione os produtos para vincular na tabela"
-        action={{content: 'Selecionar produtos', icon: ProductAddIcon, onAction: selectProduct}}
-        image="https://cdn.shopify.com/s/files/1/2376/3301/products/emptystate-files.png"
-      >
-        <p>
-          Você precisa selecionar os produtos para vincular na tabela.
-        </p>
-      </EmptyState>
-    ) : undefined;
+  const emptyStateMarkup = !productsPicker.length ? (
+    <EmptyState
+      heading="Selecione os produtos para vincular na tabela"
+      action={{
+        content: "Selecionar produtos",
+        icon: ProductAddIcon,
+        onAction: selectProduct,
+      }}
+      image="https://cdn.shopify.com/s/files/1/2376/3301/products/emptystate-files.png"
+    >
+      <p>Você precisa selecionar os produtos para vincular na tabela.</p>
+    </EmptyState>
+  ) : undefined;
 
   return (
     <Page
       title={table.title || "Crie sua tabela"}
       fullWidth
-      backAction={{content: 'Voltar', onAction: () => navigate('/app')}}
+      backAction={{ content: "Voltar", onAction: () => navigate("/app") }}
       primaryAction={{
-        content: "Salvar",
+        content: table.id ? "Editar" : "Salvar",
         loading: nav.state === "submitting",
-        helpText: 'Você precisa preencher os campos.',
-        disabled:
-          nav.state === "submitting" ||
-          !productsPicker.length,
-        onAction: handleSave, 
+        helpText: "Você precisa preencher os campos.",
+        disabled: nav.state === "submitting" || !productsPicker.length,
+        onAction: () => handleSubmit(table.id),
       }}
     >
       <BlockStack gap="500">
@@ -358,15 +367,16 @@ export default function tableform() {
             <Form noValidate>
               <FormLayout>
                 <Grid>
-                  <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 5, xl: 5}}>
+                  <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 5, xl: 5 }}>
                     <Card>
+                      {message && <Banner status="success">{message}</Banner>}
                       <BlockStack className={"Campos"}>
-                        
                         <TextField
                           label="Nome da tabela"
                           type="text"
                           autoComplete="off"
                           value={tableName}
+                          name="title"
                           onChange={handleTableName}
                         />
 
@@ -407,7 +417,7 @@ export default function tableform() {
                     </Card>
                   </Grid.Cell>
 
-                  <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 7, xl: 7}}>
+                  <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 7, xl: 7 }}>
                     <Card>
                       <BlockStack className={"Produtos"} gap={"400"}>
                         <InlineGrid columns="1fr auto">
